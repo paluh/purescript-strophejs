@@ -64,5 +64,4 @@ main = do
       [(ConnectionAction <<< StatusChange) <$> statusSignal,
        (ConnectionAction <<< Message) <$> messageSignal]
     }
-  -- connect conn (Username "paluh@localhost") (Password "test") (onStatusChange channel)
   renderToDOM "#app" app.markup app.input

@@ -81,7 +81,7 @@ update a s =
     onlyEffects conn [liftEff (traceAnyA "SENDING PING" >>= const ping >>= Strophe.send connection >>= const (pure Nothing))]
    where
     ping = runST (do
-      b ← iq (fromFoldable [Tuple "to" "localhost", Tuple "type" "get", Tuple "id" "iq1"])
+      b ← iq (fromFoldable [Tuple "to" "paluh@localhost", Tuple "type" "get", Tuple "id" "iq1"])
       c b "ping" (fromFoldable [Tuple "xmlns" "urn:xmpp:ping"])
       buildStanza b)
   sendPingOnConnect _ c = noEffects c

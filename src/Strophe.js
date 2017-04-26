@@ -4,6 +4,9 @@
 
 var Strophe = require('strophejs').Strophe;
 
+// this should be configurable
+Strophe.log = function (lvl, msg) { console.log("LOG: " + msg); };
+
 exports.error = Strophe.Status.ERROR;
 exports.connecting = Strophe.Status.CONNECTING;
 exports.connfail = Strophe.Status.CONNFAIL;
@@ -94,12 +97,7 @@ exports.sendImpl = function(connection, stanza) {
   connection.send(stanza);
 };
 
-
 exports.addHandlerImpl = function(connection, handler) {
-  console.log("REGISTERING HANDLER" + handler);
-  connection.addHandler(function(stanza) {
-    console.log("FROM RAW HANDLER" + stanza);
-    return handler(stanza);
-  }); //, null, "iq", null, "iq1");
+  connection.addHandler(handler);
 };
 
