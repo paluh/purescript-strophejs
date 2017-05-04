@@ -1,10 +1,13 @@
 module Chat.Utils where
 
 import Prelude
+import Control.Monad.Aff (Aff)
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Class (liftEff)
 import Data.Lens (Lens', Prism', preview, review, set, view)
 import Data.Maybe (Maybe(..))
 import Data.Monoid (class Monoid)
-import Pux (FoldP, EffModel, noEffects)
+import Pux (EffModel, FoldP, CoreEffects, noEffects, onlyEffects)
 
 focus
   ∷ ∀ eff state2 state1 action1 action2
@@ -55,7 +58,21 @@ instance updateFunSemigroup ∷ Semigroup (UpdateFun a s e) where
 instance updateFunMonoid ∷ Monoid (UpdateFun a s e) where
   mempty = UpdateFun (\_ s → noEffects s)
 
+onlyEffect ∷ ∀ action eff state. state → (Aff (CoreEffects eff) (Maybe action)) → EffModel state action eff
+onlyEffect state effect =
+  onlyEffects state [effect]
 
+onlyEffect' ∷ ∀ a action eff state. state → (Aff (CoreEffects eff) a) → EffModel state action eff
+onlyEffect' state effect =
+  onlyEffect state (effect >>= const (pure Nothing))
+
+onlyEffEffect ∷ ∀ action eff state. state → (Eff (CoreEffects eff) (Maybe action)) → EffModel state action eff
+onlyEffEffect state effect =
+  onlyEffects state [liftEff effect]
+
+onlyEffEffect' ∷ ∀ a action eff state. state → (Eff (CoreEffects eff) a) → EffModel state action eff
+onlyEffEffect' state effect =
+  onlyEffEffect state (effect >>= const (pure Nothing))
 
 -- -- | A variant of `focus` which only changes the state type, by applying a `Lens`.
 -- focusState

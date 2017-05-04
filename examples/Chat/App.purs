@@ -3,35 +3,34 @@ module Chat.App where
 import Prelude
 import Chat.Connection as Connection
 import Chat.LoginForm as LoginForm
+import Chat.Stats as Stats
 import Data.Either as Either
 import Data.Lens as Lens
 import Strophe as Strophe
 import Chat.LoginForm (AuthenticationStatus(..))
-import Chat.Utils (UpdateFun(..), focus, focusEffModel, runUpdateFun)
+import Chat.Utils (UpdateFun(UpdateFun), focus, focusEffModel, onlyEffEffect', runUpdateFun)
 import Control.Monad.Aff.Console (CONSOLE)
-import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.ST (runST)
+import Control.Monad.Eff.Now (NOW)
+import Control.Monad.ST (pureST)
 import DOM (DOM)
-import DOM.HTML.HTMLTrackElement.ReadyState (ReadyState(..))
 import Data.Foldable (for_)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.Monoid (mempty)
 import Data.StrMap (fromFoldable)
 import Data.Tuple (Tuple(..))
-import Debug.Trace (traceAnyA)
 import Network.HTTP.Affjax (AJAX)
-import Pux (FoldP, noEffects, onlyEffects)
+import Pux (FoldP, noEffects)
 import Pux.DOM.Events (onClick)
 import Pux.DOM.HTML (HTML, mapEvent)
-import Signal.Channel (CHANNEL, send)
-import Strophe (HTTP, Status, buildStanza, c, iq)
+import Signal.Channel (CHANNEL)
+import Strophe (CONNECTION, HTTP, Status, build, c, iq)
 import Text.Smolder.HTML (button, h1, li, ul)
 import Text.Smolder.Markup (text, (#!))
 
 type State =
   { connection ∷ Connection.State
+  , requests ∷ Stats.State
   , loginForm ∷ LoginForm.State
   , log ∷ List Status
   }
@@ -59,7 +58,7 @@ _ConnectionAction = Lens.prism ConnectionAction unwrap
     unwrap y = Either.Left y
 
 -- update ∷ ∀ eff. Action → State → EffModel State Action (http ∷ HTTP, ajax ∷ AJAX | eff)
-update ∷ ∀ eff. FoldP State Action (http ∷ HTTP, ajax ∷ AJAX, console ∷ CONSOLE, channel ∷ CHANNEL, dom ∷ DOM, err ∷ EXCEPTION | eff)
+update ∷ ∀ eff. FoldP State Action (http ∷ HTTP, ajax ∷ AJAX, connection ∷ CONNECTION, console ∷ CONSOLE, channel ∷ CHANNEL, dom ∷ DOM, now ∷ NOW, err ∷ EXCEPTION | eff)
 update a@(LoginFormAction (LoginForm.Login jid password)) state =
   let
     connectionEffModel =
@@ -76,21 +75,25 @@ update a s =
   logL :: forall a b r. Lens.Lens { "log" :: a | r } { "log" :: b | r } a b
   logL = Lens.lens _."log" (_ { "log" = _ })
 
-  sendPingOnConnect ∷ ∀ e. FoldP (Maybe Strophe.Connection) Connection.Action (http ∷ HTTP | e)
-  sendPingOnConnect (Connection.StatusChange Strophe.Connected) conn@(Just connection) =
-    onlyEffects conn [liftEff (traceAnyA "SENDING PING" >>= const ping >>= Strophe.send connection >>= const (pure Nothing))]
-   where
-    ping = runST (do
-      b ← iq (fromFoldable [Tuple "to" "paluh@localhost", Tuple "type" "get", Tuple "id" "iq1"])
-      c b "ping" (fromFoldable [Tuple "xmlns" "urn:xmpp:ping"])
-      buildStanza b)
-  sendPingOnConnect _ c = noEffects c
-
   updateLogUpdateFun = UpdateFun (focus logL _ConnectionAction updateLog)
   loginFormUpdateFun = UpdateFun (focus loginFormL _LoginFormAction LoginForm.update)
   connectionUpdateFun = UpdateFun (focus connectionL _ConnectionAction Connection.update)
-  sendPingOnConnectUpdateFun = UpdateFun (focus (connectionL <<< connectionL) _ConnectionAction sendPingOnConnect)
 
+  sendPingOnConnect ∷ ∀ e. FoldP Connection.State Connection.Action (connection ∷ CONNECTION, http ∷ HTTP, now ∷ NOW | e)
+  sendPingOnConnect (Connection.StatusChange Strophe.Connected) connectionState@{ connection: Just connection} =
+    onlyEffEffect'
+      connectionState
+      (Connection.send
+        connection
+        ping
+        connectionState.outgoingStanzaChannel)
+   where
+    ping = pureST (do
+      b ← iq (fromFoldable [Tuple "to" "paluh@localhost", Tuple "type" "get"])
+      c b "ping" (fromFoldable [Tuple "xmlns" "urn:xmpp:ping"])
+      build b)
+  sendPingOnConnect _ c = noEffects c
+  sendPingOnConnectUpdateFun = UpdateFun (focus connectionL _ConnectionAction sendPingOnConnect)
 
 view ∷ State → HTML Action
 view { connection : { status }, loginForm, log } = do
