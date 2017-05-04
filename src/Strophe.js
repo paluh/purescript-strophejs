@@ -38,66 +38,78 @@ exports.disconnectImpl = function(connection, reason) {
 // I'm not sure how to clone Builder, so
 // I'm creating this reference to lazy instance
 // and creating real instance every time
-// buildStanza is evaluated
+// build is evaluated
 exports.msgImpl = function(attrs) {
-  return {
-    builder: function() {
-      return new Strophe.Builder("message", attrs);
-    }
-  };
+  return new Strophe.Builder("message", attrs);
 };
 
 exports.presImpl = function(attrs) {
-  return {
-    builder: function() {
-      return new Strophe.Builder("presence", attrs);
-    }
-  };
+  return new Strophe.Builder("presence", attrs);
 };
 
 exports.iqImpl = function(attrs) {
-  return {
-    builder: function() {
-      return new Strophe.Builder("iq", attrs);
-    }
-  };
+  return new Strophe.Builder("iq", attrs);
 };
 
 exports.cImpl = function(b, n, attrs) {
-  var i = b.builder;
-  b.builder = function() {
-    return i().c(n, attrs);
-  };
+  b.c(n, attrs);
 };
 
 exports.tImpl = function(b, t) {
-  var i = b.builder;
-  b.builder = function() {
-    return i().t(t);
-  };
+  b.t(t);
 };
 
 exports.upImpl = function(b) {
-  var i = b.builder;
-  b.builder = function() {
-    return i().up();
-  };
+  b.up();
 };
 
-exports.buildStanzaImpl = function(b) {
-  return b.builder();
+exports.attrsImpl = function(b, moreattrs) {
+  // convert `null` to `undefined`
+  // I'm not sure how to pass `undefined` value from Purescript
+  // but strophe requires `undefined` as marker for deletion
+  var attrs = {};
+  for (var k in attrs) {
+    if (moreattrs.hasOwnProperty(k)) {
+      if (moreattrs[k] === null) {
+        attrs[k] = undefined;
+      } else {
+        attrs[k] = moreattrs[k];
+      }
+    }
+  }
+  b.attrs(attrs);
+};
+
+exports.buildImpl = function(b) {
+  return b.tree().cloneNode(true);
+};
+
+var Builder = function(nodeTree) {
+  this.nodeTree = nodeTree;
+  this.node = nodeTree;
+};
+var BuilderPrototype = function() { };
+BuilderPrototype.prototype = Strophe.Builder.prototype;
+Builder.prototype = new BuilderPrototype();
+
+exports.fromStanzaDocumentImpl = function(stanza) {
+  var nodeTree = stanza.cloneNode(true);
+  return new Builder(nodeTree);
 };
 
 exports.toString = function(stanza) {
-  return stanza.toString();
+  return Strophe.serialize(stanza);
 };
 
 exports.sendImpl = function(connection, stanza) {
-  console.log("SenDING STANZA:" + stanza);
   connection.send(stanza);
 };
 
 exports.addHandlerImpl = function(connection, handler) {
   connection.addHandler(handler);
+};
+
+exports.getUniqueIdImpl = function(connection, suffix) {
+  return connection.getUniqueId(suffix);
 };
 
