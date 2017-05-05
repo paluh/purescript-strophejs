@@ -35,7 +35,7 @@ main = do
           , statusChannel: statusChannel
           , status: Disconnected
           }
-      , requests: (empty ∷ StrMap Request)
+      , stats: (empty ∷ StrMap Request)
       , loginForm:
           { jid: ""
           , password: ""

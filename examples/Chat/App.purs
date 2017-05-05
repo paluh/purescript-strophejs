@@ -14,7 +14,7 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Now (NOW)
 import Control.Monad.ST (pureST)
 import DOM (DOM)
-import Data.Foldable (for_)
+import Data.Foldable (for_, maximumBy)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.StrMap (fromFoldable)
@@ -25,12 +25,12 @@ import Pux.DOM.Events (onClick)
 import Pux.DOM.HTML (HTML, mapEvent)
 import Signal.Channel (CHANNEL)
 import Strophe (CONNECTION, HTTP, Status, build, c, iq)
-import Text.Smolder.HTML (button, h1, li, ul)
+import Text.Smolder.HTML (button, h1, li, p, ul)
 import Text.Smolder.Markup (text, (#!))
 
 type State =
   { connection ∷ Connection.State
-  , requests ∷ Stats.State
+  , stats ∷ Stats.State
   , loginForm ∷ LoginForm.State
   , log ∷ List Status
   }
@@ -38,6 +38,7 @@ type State =
 data Action
   = LoginFormAction LoginForm.Action
   | ConnectionAction Connection.Action
+  | SendPing
 
 loginFormL :: forall a b r. Lens.Lens { "loginForm" :: a | r } { "loginForm" :: b | r } a b
 loginFormL = Lens.lens _."loginForm" (_ { "loginForm" = _ })
@@ -65,8 +66,20 @@ update a@(LoginFormAction (LoginForm.Login jid password)) state =
       Connection.update (Connection.Connect jid password) (Lens.view connectionL state)
   in
     focusEffModel connectionL _ConnectionAction connectionEffModel state
+update SendPing state@{connection: connectionState@{connection: Just connection}}=
+  onlyEffEffect'
+    state
+    (Connection.send
+      connection
+      ping
+      connectionState.outgoingStanzaChannel)
+ where
+  ping = pureST (do
+    b ← iq (fromFoldable [Tuple "to" "paluh@localhost", Tuple "type" "get"])
+    c b "ping" (fromFoldable [Tuple "xmlns" "urn:xmpp:ping"])
+    build b)
 update a s =
-  runUpdateFun (loginFormUpdateFun <> connectionUpdateFun <> updateLogUpdateFun <> sendPingOnConnectUpdateFun) a s
+  runUpdateFun (loginFormUpdateFun <> connectionUpdateFun <> updateLogUpdateFun <> statsUpdateFun) a s
  where
   updateLog ∷ ∀ e. FoldP (List Status) Connection.Action e
   updateLog (Connection.StatusChange status) l = noEffects (status : l)
@@ -75,37 +88,31 @@ update a s =
   logL :: forall a b r. Lens.Lens { "log" :: a | r } { "log" :: b | r } a b
   logL = Lens.lens _."log" (_ { "log" = _ })
 
+  statsL :: forall a b r. Lens.Lens { "stats" :: a | r } { "stats" :: b | r } a b
+  statsL = Lens.lens _."stats" (_ { "stats" = _ })
+
   updateLogUpdateFun = UpdateFun (focus logL _ConnectionAction updateLog)
   loginFormUpdateFun = UpdateFun (focus loginFormL _LoginFormAction LoginForm.update)
   connectionUpdateFun = UpdateFun (focus connectionL _ConnectionAction Connection.update)
-
-  sendPingOnConnect ∷ ∀ e. FoldP Connection.State Connection.Action (connection ∷ CONNECTION, http ∷ HTTP, now ∷ NOW | e)
-  sendPingOnConnect (Connection.StatusChange Strophe.Connected) connectionState@{ connection: Just connection} =
-    onlyEffEffect'
-      connectionState
-      (Connection.send
-        connection
-        ping
-        connectionState.outgoingStanzaChannel)
-   where
-    ping = pureST (do
-      b ← iq (fromFoldable [Tuple "to" "paluh@localhost", Tuple "type" "get"])
-      c b "ping" (fromFoldable [Tuple "xmlns" "urn:xmpp:ping"])
-      build b)
-  sendPingOnConnect _ c = noEffects c
-  sendPingOnConnectUpdateFun = UpdateFun (focus connectionL _ConnectionAction sendPingOnConnect)
+  statsUpdateFun = UpdateFun (focus statsL _ConnectionAction Stats.foldp)
 
 view ∷ State → HTML Action
-view { connection : { status }, loginForm, log } = do
+view { connection : { status }, loginForm, log, stats } = do
   case status of
     Strophe.Connected →
       h1 $ do
         text "connected"
         button #! onClick (pure (ConnectionAction Connection.Disconnect)) $ text "disconnect"
+        button #! onClick (pure (SendPing)) $ text "ping"
     Strophe.Disconnecting →
       h1 $ text "disconnecting..."
     otherwise →
       mapEvent LoginFormAction (LoginForm.view loginForm (authStatus status))
+  case maximumBy (\r1 r2 → compare r1.sentAt r2.sentAt) stats of
+    Nothing → pure unit
+    Just r → do
+      p $ text "Latest request"
+      p $ text (show r.sentAt)
   case log of
     Nil → pure unit
     otherwise →
