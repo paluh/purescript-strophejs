@@ -18,16 +18,18 @@ nonEmptyString v = Just <<< wrap $ v
 fromNonEmptyString ∷ NonEmptyString → String
 fromNonEmptyString = unwrap
 
-newtype Jid =
-  Jid
-    { localpart ∷ Maybe NonEmptyString
-    , domainpart ∷ NonEmptyString
-    , resourcepart ∷ Maybe NonEmptyString
-    }
-derive instance genericJid ∷ Generic Jid _
-derive instance newtypeJid ∷ Newtype Jid _
-derive instance eqJid ∷ Eq Jid
-derive instance ordJid ∷ Ord Jid
+type Jid = String
+
+-- newtype Jid =
+--   Jid
+--     { localpart ∷ Maybe NonEmptyString
+--     , domainpart ∷ NonEmptyString
+--     , resourcepart ∷ Maybe NonEmptyString
+--     }
+-- derive instance genericJid ∷ Generic Jid _
+-- derive instance newtypeJid ∷ Newtype Jid _
+-- derive instance eqJid ∷ Eq Jid
+-- derive instance ordJid ∷ Ord Jid
 
 
 -- | Parse the parts of a JID. The parts need to be validated with stringprep

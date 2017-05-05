@@ -68,7 +68,7 @@ exports.attrsImpl = function(b, moreattrs) {
   // I'm not sure how to pass `undefined` value from Purescript
   // but strophe requires `undefined` as marker for deletion
   var attrs = {};
-  for (var k in attrs) {
+  for (var k in moreattrs) {
     if (moreattrs.hasOwnProperty(k)) {
       if (moreattrs[k] === null) {
         attrs[k] = undefined;

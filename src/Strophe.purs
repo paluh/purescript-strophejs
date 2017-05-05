@@ -202,7 +202,7 @@ send ∷ ∀ eff. Connection → StanzaDocument → Eff (http ∷ HTTP, connecti
 send = runEffFn2 sendImpl
 
 -- send and set uniqueId for stanza
-send' ∷ ∀ eff. Connection → StanzaDocument → Eff (http ∷ HTTP, connection :: CONNECTION | eff) StanzaId
+send' ∷ ∀ eff. Connection → StanzaDocument → Eff (http ∷ HTTP, connection :: CONNECTION | eff) StanzaDocument
 send' conn stanza = do
   stanzaId ← getUniqueId conn Nothing
   let
@@ -211,7 +211,7 @@ send' conn stanza = do
       attrs builder (fromFoldable [Tuple "id" (Just <<< unwrap $ stanzaId)])
       build builder)
   send conn stanza'
-  pure stanzaId
+  pure stanza'
 
 foreign import addHandlerImpl ∷
   ∀ eff.

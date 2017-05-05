@@ -1,14 +1,12 @@
 module Strophe.Xmpp.Stanza where
 
 import Prelude
-import Control.Error.Util (hoistMaybe)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
+import Control.Monad.Trans.Class (lift)
 import DOM (DOM)
-import DOM.Node.Document (documentElement)
 import DOM.Node.Element (getAttribute, tagName)
-import DOM.Node.Types (Document, Element)
-import Data.Array (elem)
+import DOM.Node.Types (Element)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
@@ -20,9 +18,10 @@ import Unsafe.Coerce (unsafeCoerce)
 -- Code highly inspired by haskell pontarius-xmpp
 
 data Stanza
-  = IqRequest     IqRequest
-  | IqResult      IqResult
-  | OtherStanza   StanzaDocument
+  = IqRequest IqRequest
+  | IqResult IqResult
+  | IqError IqError
+  | OtherStanza StanzaDocument
   -- | IQErrorS       !IQError
   -- | MessageS       !Message
   -- | MessageErrorS  !MessageError
@@ -34,6 +33,17 @@ data IqRequestType = Get | Set
 derive instance genericIqRequestType ∷ Generic IqRequestType _
 derive instance eqIqRequestType ∷ Eq IqRequestType
 derive instance ordIqRequestType ∷ Ord IqRequestType
+data IqResultType = Error | Result
+derive instance genericIqResultType ∷ Generic IqResultType _
+derive instance eqIqResultType ∷ Eq IqResultType
+derive instance ordIqResultType ∷ Ord IqResultType
+data IqType
+  = IqResultType IqResultType
+  | IqRequestType IqRequestType
+
+derive instance genericIqType ∷ Generic IqType _
+derive instance eqIqType ∷ Eq IqType
+derive instance ordIqType ∷ Ord IqType
 
 type IqRequest =
   { id ∷ String
@@ -49,36 +59,43 @@ type IqResult =
   , from ∷ Maybe Jid
   , to ∷ Maybe Jid
   -- , langTag ∷ Maybe LangTag
-  , payload ∷ Maybe Element
+  -- , payload ∷ Maybe Element
   -- , attributes ∷ [ExtendedAttribute]
   }
 
-asDocument ∷ StanzaDocument → Document
+type IqError =
+  { id          :: String
+  , from        :: (Maybe Jid)
+  , to          :: (Maybe Jid)
+  -- , langTag     :: !(Maybe LangTag)
+  -- , stanzaError :: !StanzaError
+  -- , payload     :: (Maybe Element) -- should this be []?
+  -- , attributes  :: ![ExtendedAttribute]
+  }
+
+asDocument ∷ StanzaDocument → Element
 asDocument = unsafeCoerce <<< unwrap
 
-parseIqRequestType ∷ String → Maybe IqRequestType
-parseIqRequestType s
-  | s == "get" = Just Get
-  | s == "set" = Just Set
+parseIqType ∷ String → Maybe IqType
+parseIqType s
+  | s == "get" = Just (IqRequestType Get)
+  | s == "set" = Just (IqRequestType Set)
+  | s == "error" = Just (IqResultType Error)
+  | s == "result" = Just (IqResultType Result)
   | otherwise = Nothing
 
 fromDocument ∷ ∀ eff. StanzaDocument → Eff (dom ∷ DOM | eff) (Maybe Stanza)
 fromDocument stanzaDocument = runMaybeT ( do
-  root ← MaybeT $ toMaybe <$> documentElement (asDocument stanzaDocument)
+  let root = asDocument stanzaDocument
   case tagName root of
     "iq" → do
-      iqType ← MaybeT $ toMaybe <$> getAttribute "type" root
+      iqType ← MaybeT $ (parseIqType <=< toMaybe) <$> getAttribute "type" root
       id ← MaybeT $ toMaybe <$> getAttribute "id" root
-      to ← MaybeT $ (Just <<< toMaybe) <$> getAttribute "to" root
-      from ← MaybeT $ (Just <<< toMaybe) <$> getAttribute "from" root
-      if iqType `elem` ["get", "set"]
-        then do
-          iqType' ← hoistMaybe (parseIqRequestType iqType)
-          pure $ IqRequest { requestType: iqType', id, to: Nothing, from: Nothing}
-        -- XXX: Fix parsing
-        else pure $ OtherStanza stanzaDocument
+      to ← lift $ toMaybe <$> getAttribute "to" root
+      from ← lift $ toMaybe <$> getAttribute "from" root
+      pure $ case iqType of
+        (IqRequestType requestType) → IqRequest { requestType, id, to, from }
+        (IqResultType Error) → IqError {id, to, from}
+        (IqResultType Result) → IqResult {id, to, from}
     otherwise → pure (OtherStanza stanzaDocument))
 
-
--- type UnidentifiedIqRequest = IqRequestBase ()
--- type IqRequest = IqRequestBase (id ∷ String)
