@@ -1,8 +1,6 @@
 "use strict";
 
-/*jshint node:true */
-
-var Strophe = require('strophejs').Strophe;
+var Strophe = window.Strophe || require('strophejs').Strophe;
 
 // this should be configurable
 Strophe.log = function (lvl, msg) { console.log("LOG: " + msg); };

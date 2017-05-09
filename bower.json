@@ -22,7 +22,11 @@
     "strophejs": "^1.2.12"
   },
   "devDependencies": {
-    "purescript-psci-support": "3.0.0",
-    "purescript-debug": "3.0.0"
+    "purescript-debug": "^3.0.0",
+    "purescript-exitcodes":
+      "git@github.com:Risto-Stevcev/purescript-exitcodes.git#master",
+    "purescript-phantom": "^2.0.0",
+    "purescript-psci-support": "^3.0.0",
+    "purescript-test-unit": "^11.0.0"
   }
 }
