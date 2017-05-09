@@ -1,4 +1,5 @@
-./bower_components/
-./node_modules/
-./.pulp-cache/
-./output/
+/bower_components/
+/node_modules/
+/output/
+/.pulp-cache/
+/.psci_modules/

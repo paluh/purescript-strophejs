@@ -26,11 +26,10 @@ module Strophe
  where
 
 import Prelude
-import Control.Monad.Eff (Eff)
 import Control.Monad.ST (ST, pureST)
 import DOM.Node.Types (Document)
-import Data.Function.Eff (EffFn1, EffFn2, EffFn3, EffFn5, mkEffFn1, runEffFn1, runEffFn2, runEffFn3, runEffFn5)
-import Data.Function.Uncurried (Fn1, runFn1)
+import Control.Monad.Eff.Uncurried (EffFn1, EffFn2, EffFn3, EffFn5, mkEffFn1, runEffFn1, runEffFn2, runEffFn3, runEffFn5)
+import Control.Monad.Eff (Eff, kind Effect)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
@@ -40,14 +39,14 @@ import Data.StrMap (StrMap, fromFoldable)
 import Data.Tuple (Tuple(..))
 import Partial.Unsafe (unsafePartial)
 
-foreign import data HTTP ∷ !
--- getUniqueId changes state of connection
--- object without HTTP effects so this is
--- effect which changes connection
--- instance state
-foreign import data CONNECTION ∷ !
+foreign import data HTTP ∷ Effect
+-- CONNECTION is an effect which changes
+-- connection instance state
+-- for example getUniqueId changes state
+-- of connection object without HTTP requests
+foreign import data CONNECTION ∷ Effect
 
-foreign import data Connection ∷ *
+foreign import data Connection ∷ Type
 
 data Status
   = Attached
@@ -93,9 +92,9 @@ newtype Jid = Jid String
 newtype Password = Password String
 
 foreign import connectionImpl ∷
-  ∀ eff. Fn1 ServerUrl (Eff (http ∷ HTTP, connection :: CONNECTION | eff) Connection)
+  ∀ eff. ServerUrl → (Eff (http ∷ HTTP, connection :: CONNECTION | eff) Connection)
 connection ∷ ∀ eff. ServerUrl → Eff (http ∷ HTTP, connection :: CONNECTION | eff) Connection
-connection = runFn1 connectionImpl
+connection = connectionImpl
 
 foreign import connectImpl ∷
   ∀ eff.
@@ -139,7 +138,7 @@ disconnect conn reason = runEffFn2 disconnectImpl conn reason
 
 -- | Fully imperative interface to strphejs Builder.
 
-foreign import data STBuilder ∷ * → *
+foreign import data STBuilder ∷ Type → Type
 newtype StanzaDocument = StanzaDocument Document
 derive instance newtypeStanzaDocument ∷ Newtype StanzaDocument _
 

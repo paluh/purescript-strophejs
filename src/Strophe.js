@@ -34,11 +34,6 @@ exports.disconnectImpl = function(connection, reason) {
   connection.disconnect(reason);
 };
 
-// Probably this is stupid and inefficient, but
-// I'm not sure how to clone Builder, so
-// I'm creating this reference to lazy instance
-// and creating real instance every time
-// build is evaluated
 exports.msgImpl = function(attrs) {
   return new Strophe.Builder("message", attrs);
 };

@@ -10,7 +10,6 @@ import DOM.Node.Types (Element)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.Nullable (toMaybe)
 import Strophe (StanzaDocument)
 import Strophe.Xmpp.Jid (Jid)
 import Unsafe.Coerce (unsafeCoerce)
@@ -89,10 +88,10 @@ fromDocument stanzaDocument = runMaybeT ( do
   let root = asDocument stanzaDocument
   case tagName root of
     "iq" → do
-      iqType ← MaybeT $ (parseIqType <=< toMaybe) <$> getAttribute "type" root
-      id ← MaybeT $ toMaybe <$> getAttribute "id" root
-      to ← lift $ toMaybe <$> getAttribute "to" root
-      from ← lift $ toMaybe <$> getAttribute "from" root
+      iqType ← MaybeT $ ((_ >>= parseIqType)) <$> getAttribute "type" root
+      id ← MaybeT $ getAttribute "id" root
+      to ← lift $ getAttribute "to" root
+      from ← lift $ getAttribute "from" root
       pure $ case iqType of
         (IqRequestType requestType) → IqRequest { requestType, id, to, from }
         (IqResultType Error) → IqError {id, to, from}
