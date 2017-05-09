@@ -63,7 +63,6 @@ derive instance genericStatus ∷ Generic Status _
 derive instance eqStatus ∷ Eq Status
 instance showStatus ∷ Show Status where show = genericShow
 
--- values used to implement convertion
 foreign import attached ∷ Int
 foreign import authenticating ∷ Int
 foreign import authfail ∷ Int
@@ -75,6 +74,8 @@ foreign import disconnected ∷ Int
 foreign import disconnecting ∷ Int
 foreign import error ∷ Int
 
+-- probably we can seed up this conversion
+-- by using just an array
 _toStatus ∷ Partial ⇒ Int → Status
 _toStatus s | s == attached = Attached
             | s == authenticating = Authenticating
