@@ -26,13 +26,15 @@ module Strophe
  where
 
 import Prelude
+import Control.Monad.Eff (Eff, runPure, kind Effect)
+import Control.Monad.Eff.Uncurried (EffFn1, EffFn2, EffFn3, EffFn5, mkEffFn1, runEffFn1, runEffFn2, runEffFn3, runEffFn5)
 import Control.Monad.ST (ST, pureST)
 import DOM.Node.Types (Document)
-import Control.Monad.Eff.Uncurried (EffFn1, EffFn2, EffFn3, EffFn5, mkEffFn1, runEffFn1, runEffFn2, runEffFn3, runEffFn5)
-import Control.Monad.Eff (Eff, kind Effect)
+import Data.Array ((!!))
+import Data.Array.ST (emptySTArray, pokeSTArray, runSTArray)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Nullable (Nullable, toNullable)
 import Data.StrMap (StrMap, fromFoldable)
@@ -74,19 +76,24 @@ foreign import disconnected ∷ Int
 foreign import disconnecting ∷ Int
 foreign import error ∷ Int
 
--- probably we can seed up this conversion
--- by using just an array
+_statusCache ∷ Array Status
+_statusCache = runPure $ runSTArray (do
+  let pokeSTArray' arr i = void <<< pokeSTArray arr i
+  arr ← emptySTArray
+  pokeSTArray' arr attached Attached
+  pokeSTArray' arr authenticating Authenticating
+  pokeSTArray' arr authfail Authfail
+  pokeSTArray' arr connected Connected
+  pokeSTArray' arr connecting Connecting
+  pokeSTArray' arr connfail Connfail
+  pokeSTArray' arr conntimeout Conntimeout
+  pokeSTArray' arr disconnected Disconnected
+  pokeSTArray' arr disconnecting Disconnecting
+  pokeSTArray' arr error Error
+  pure arr)
+
 _toStatus ∷ Partial ⇒ Int → Status
-_toStatus s | s == attached = Attached
-            | s == authenticating = Authenticating
-            | s == authfail = Authfail
-            | s == connected = Connected
-            | s == connecting = Connecting
-            | s == connfail = Connfail
-            | s == conntimeout = Conntimeout
-            | s == disconnected = Disconnected
-            | s == disconnecting = Disconnecting
-            | s == error = Error
+_toStatus i = fromJust $ _statusCache !! i
 
 newtype ServerUrl = ServerUrl String
 newtype Jid = Jid String
