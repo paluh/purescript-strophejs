@@ -1,4 +1,4 @@
-# Purescript bindings for strophejs
+# Purescript bindings to strophejs
 
 ## Status
 
@@ -11,7 +11,7 @@ Higher level `API` is still in pre alpha state, so don't rely on anything under 
 
 I was not able to run phantomjs without bundling strophejs together with library code (it would require separate runner etc.), so I've decied to incorporate webpack to developement cylce.
 
-To run tests during developement cycle:
+To run tests with autorecompilation:
 
     $ webpack --watch --config test.webpack.config.js
 
