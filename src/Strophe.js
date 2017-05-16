@@ -77,16 +77,22 @@ exports.buildImpl = function(b) {
   return b.tree().cloneNode(true);
 };
 
-var Builder = function(nodeTree) {
-  this.nodeTree = nodeTree;
-  this.node = nodeTree;
-};
-var BuilderPrototype = function() { };
-BuilderPrototype.prototype = Strophe.Builder.prototype;
-Builder.prototype = new BuilderPrototype();
-
 exports.fromStanzaDocumentImpl = function(stanza) {
   var nodeTree = stanza.cloneNode(true);
+  // XXX: It is probably `purs bundle` bug
+  // but I'm not have time to investigate this
+  // any further:
+  //  * when I'm using this on global level
+  //    variables definitions somehow disapear
+  //    in compiled code
+  var Builder = function(nodeTree) {
+    this.nodeTree = nodeTree;
+    this.node = nodeTree;
+  };
+  var BuilderPrototype = function() { };
+  BuilderPrototype.prototype = Strophe.Builder.prototype;
+  Builder.prototype = new BuilderPrototype();
+
   return new Builder(nodeTree);
 };
 

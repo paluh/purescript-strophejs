@@ -11,13 +11,12 @@ import PhantomJS.Phantom (PHANTOMJS, exit, injectJs)
 import Strophe (build, c, iq, t, toString, up)
 import Test.Unit (describe, it)
 import Test.Unit.Assert (assert, shouldEqual)
-import Test.Unit.Output.Fancy (runTest)
+import Test.Unit.Output.Simple (runTest)
 
 
 main = launchAff $ runTest $ do
   describe "builder" $ do
-    it "should exit" $ do
-      -- _ ← liftEff $ injectJs "/home/paluh/programming/purescript/projects/purescript-strophejs/bower_components/strophejs/strophe.min.js"
+    it "should consruct correct stanzas" $ do
       {s1, s2} ← liftEff $ runST (do
         b ← iq empty
         c b "foo" empty
@@ -29,5 +28,17 @@ main = launchAff $ runTest $ do
         c b "baz" empty
         s2 ← build b
         pure {s1, s2})
-      toString s1 `shouldEqual` "unknown"
-      toString s2 `shouldEqual` "unknown"
+      toString s1 `shouldEqual`
+        "<iq xmlns='jabber:client'><foo xmlns='jabber:client'/></iq>"
+      toString s2 `shouldEqual`
+        ("<iq xmlns='jabber:client'>" <>
+           "<foo xmlns='jabber:client'>" <>
+             "<bar xmlns='jabber:client'>text</bar>" <>
+           "</foo>" <>
+           "<baz xmlns='jabber:client'/>" <>
+         "</iq>")
+
+  describe "exit" $ do
+    it "should exit" $ do
+      liftEff $ exit (fromEnum Success)
+      assert "failed to exit phantomjs" false
