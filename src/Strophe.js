@@ -15,6 +15,7 @@ exports.conntimeout = Strophe.Status.CONNTIMEOUT;
 exports.disconnected = Strophe.Status.DISCONNECTED;
 exports.disconnecting = Strophe.Status.DISCONNECTING;
 exports.error = Strophe.Status.ERROR;
+exports.redirect = Strophe.Status.REDIRECT;
 
 exports.connectionImpl = function(serverUrl) {
   return function() {

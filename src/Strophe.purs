@@ -63,6 +63,7 @@ data Status
   | Disconnected
   | Disconnecting
   | Error
+  | Redirect
 derive instance genericStatus ∷ Generic Status _
 derive instance eqStatus ∷ Eq Status
 instance showStatus ∷ Show Status where show = genericShow
@@ -77,9 +78,8 @@ foreign import conntimeout ∷ Int
 foreign import disconnected ∷ Int
 foreign import disconnecting ∷ Int
 foreign import error ∷ Int
+foreign import redirect ∷ Int
 
--- strophe status encoding is not consecutive
--- so our cache has to contain Maybe values
 _statusCache ∷ Array (Maybe Status)
 _statusCache = runPure $ runSTArray (do
   let
@@ -94,6 +94,7 @@ _statusCache = runPure $ runSTArray (do
       , Tuple disconnected Disconnected
       , Tuple disconnecting Disconnecting
       , Tuple error Error
+      , Tuple redirect Redirect
       ]
     m = fromMaybe attached (maximum (map fst s))
   arr ← thaw <<< replicate (m + 1) $ Nothing
