@@ -37,7 +37,6 @@ main = launchAff $ runTest $ do
            "</foo>" <>
            "<baz xmlns='jabber:client'/>" <>
          "</iq>")
-
   describe "exit" $ do
     it "should exit" $ do
       liftEff $ exit (fromEnum Success)

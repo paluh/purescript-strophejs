@@ -32,13 +32,14 @@ import Control.Monad.ST (ST, pureST)
 import DOM.Node.Types (Document)
 import Data.Array ((!!))
 import Data.Array.ST (emptySTArray, pokeSTArray, runSTArray)
+import Data.Foldable (sequence_)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Nullable (Nullable, toNullable)
 import Data.StrMap (StrMap, fromFoldable)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), uncurry)
 import Partial.Unsafe (unsafePartial)
 
 foreign import data HTTP ∷ Effect
@@ -78,20 +79,24 @@ foreign import error ∷ Int
 
 _statusCache ∷ Array Status
 _statusCache = runPure $ runSTArray (do
-  let pokeSTArray' arr i = void <<< pokeSTArray arr i
   arr ← emptySTArray
-  pokeSTArray' arr attached Attached
-  pokeSTArray' arr authenticating Authenticating
-  pokeSTArray' arr authfail Authfail
-  pokeSTArray' arr connected Connected
-  pokeSTArray' arr connecting Connecting
-  pokeSTArray' arr connfail Connfail
-  pokeSTArray' arr conntimeout Conntimeout
-  pokeSTArray' arr disconnected Disconnected
-  pokeSTArray' arr disconnecting Disconnecting
-  pokeSTArray' arr error Error
+  sequence_ $
+    map
+      (uncurry (pokeSTArray arr))
+      [ Tuple attached Attached
+      , Tuple authenticating Authenticating
+      , Tuple authfail Authfail
+      , Tuple connected Connected
+      , Tuple connecting Connecting
+      , Tuple connfail Connfail
+      , Tuple conntimeout Conntimeout
+      , Tuple disconnected Disconnected
+      , Tuple disconnecting Disconnecting
+      , Tuple error Error
+      ]
   pure arr)
 
+-- used internally to cast native value
 _toStatus ∷ Partial ⇒ Int → Status
 _toStatus i = fromJust $ _statusCache !! i
 

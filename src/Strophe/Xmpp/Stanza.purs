@@ -32,26 +32,40 @@ data IqRequestType = Get | Set
 derive instance genericIqRequestType ∷ Generic IqRequestType _
 derive instance eqIqRequestType ∷ Eq IqRequestType
 derive instance ordIqRequestType ∷ Ord IqRequestType
+
 data IqResultType = Error | Result
 derive instance genericIqResultType ∷ Generic IqResultType _
 derive instance eqIqResultType ∷ Eq IqResultType
 derive instance ordIqResultType ∷ Ord IqResultType
+
 data IqType
   = IqResultType IqResultType
   | IqRequestType IqRequestType
-
 derive instance genericIqType ∷ Generic IqType _
 derive instance eqIqType ∷ Eq IqType
 derive instance ordIqType ∷ Ord IqType
 
-type IqRequest =
-  { id ∷ String
-  , from ∷ Maybe Jid
-  , to ∷ Maybe Jid
-  -- , langTag ∷ Maybe LangTag
-  , requestType ∷ IqRequestType
-  -- , payload ∷ Element
-  }
+type IqRequestBase id =
+  Record
+    ( from ∷ Maybe Jid
+    , to ∷ Maybe Jid
+    -- , langTag ∷ Maybe LangTag
+    , requestType ∷ IqRequestType
+    -- , payload ∷ Element
+    | id
+    )
+
+type AnonymousIqRequest = IqRequestBase ()
+type IqRequest = IqRequestBase (id ∷ String)
+
+-- type IqRequest =
+--   { id ∷ String
+--   , from ∷ Maybe Jid
+--   , to ∷ Maybe Jid
+--   -- , langTag ∷ Maybe LangTag
+--   , requestType ∷ IqRequestType
+--   -- , payload ∷ Element
+--   }
 
 type IqResult =
   { id  ∷ String
