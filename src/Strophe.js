@@ -5,16 +5,16 @@ var Strophe = window.Strophe || require('strophejs').Strophe;
 // this should be configurable
 Strophe.log = function (lvl, msg) { console.log("LOG: " + msg); };
 
-exports.error = Strophe.Status.ERROR;
-exports.connecting = Strophe.Status.CONNECTING;
-exports.connfail = Strophe.Status.CONNFAIL;
+exports.attached = Strophe.Status.ATTACHED;
 exports.authenticating = Strophe.Status.AUTHENTICATING;
 exports.authfail = Strophe.Status.AUTHFAIL;
 exports.connected = Strophe.Status.CONNECTED;
+exports.connecting = Strophe.Status.CONNECTING;
+exports.connfail = Strophe.Status.CONNFAIL;
+exports.conntimeout = Strophe.Status.CONNTIMEOUT;
 exports.disconnected = Strophe.Status.DISCONNECTED;
 exports.disconnecting = Strophe.Status.DISCONNECTING;
-exports.attached = Strophe.Status.ATTACHED;
-exports.conntimeout = Strophe.Status.CONNTIMEOUT;
+exports.error = Strophe.Status.ERROR;
 
 exports.connectionImpl = function(serverUrl) {
   return function() {

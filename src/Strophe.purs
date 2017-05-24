@@ -30,16 +30,17 @@ import Control.Monad.Eff (Eff, runPure, kind Effect)
 import Control.Monad.Eff.Uncurried (EffFn1, EffFn2, EffFn3, EffFn5, mkEffFn1, runEffFn1, runEffFn2, runEffFn3, runEffFn5)
 import Control.Monad.ST (ST, pureST)
 import DOM.Node.Types (Document)
-import Data.Array ((!!))
-import Data.Array.ST (emptySTArray, pokeSTArray, runSTArray)
-import Data.Foldable (sequence_)
+import Data.Array (replicate, (!!))
+import Data.Array.ST (pokeSTArray, runSTArray, thaw)
+import Data.Foldable (maximum, sequence_)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Nullable (Nullable, toNullable)
+import Data.Profunctor.Strong (second)
 import Data.StrMap (StrMap, fromFoldable)
-import Data.Tuple (Tuple(..), uncurry)
+import Data.Tuple (Tuple(Tuple), fst, uncurry)
 import Partial.Unsafe (unsafePartial)
 
 foreign import data HTTP ∷ Effect
@@ -77,12 +78,12 @@ foreign import disconnected ∷ Int
 foreign import disconnecting ∷ Int
 foreign import error ∷ Int
 
-_statusCache ∷ Array Status
+-- strophe status encoding is not consecutive
+-- so our cache has to contain Maybe values
+_statusCache ∷ Array (Maybe Status)
 _statusCache = runPure $ runSTArray (do
-  arr ← emptySTArray
-  sequence_ $
-    map
-      (uncurry (pokeSTArray arr))
+  let
+    s =
       [ Tuple attached Attached
       , Tuple authenticating Authenticating
       , Tuple authfail Authfail
@@ -94,11 +95,13 @@ _statusCache = runPure $ runSTArray (do
       , Tuple disconnecting Disconnecting
       , Tuple error Error
       ]
+    m = fromMaybe attached (maximum (map fst s))
+  arr ← thaw <<< replicate (m + 1) $ Nothing
+  sequence_ $ map (uncurry (pokeSTArray arr) <<< second Just) s
   pure arr)
 
--- used internally to cast native value
-_toStatus ∷ Partial ⇒ Int → Status
-_toStatus i = fromJust $ _statusCache !! i
+_toStatus :: Partial ⇒ Int → Status
+_toStatus i = fromJust $ _statusCache !! i >>= id
 
 newtype ServerUrl = ServerUrl String
 newtype Jid = Jid String

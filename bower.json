@@ -13,6 +13,7 @@
     "purescript-generics-rep": "^5.0.0",
     "purescript-newtype": "^2.0.0",
     "purescript-prelude": "^3.0.0",
+    "purescript-profunctor": "^3.0.0",
     "strophejs": "^1.2.12"
   },
   "devDependencies": {
