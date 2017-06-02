@@ -109,6 +109,10 @@ exports.addHandlerImpl = function(connection, handler) {
   connection.addHandler(handler);
 };
 
+exports.deleteHandlerImpl = function(connection, handlerRef) {
+  connection.deleteHandler(handlerRef);
+};
+
 exports.getUniqueIdImpl = function(connection, suffix) {
   return connection.getUniqueId(suffix);
 };

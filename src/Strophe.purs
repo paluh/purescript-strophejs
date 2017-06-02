@@ -7,6 +7,7 @@ module Strophe
   , connection
   , connect
   , connect'
+  , deleteHandler
   , disconnect
   , HTTP
   , iq
@@ -16,6 +17,7 @@ module Strophe
   , send'
   , ServerUrl(..)
   , StanzaDocument
+  , StanzaHandlerRef
   , StanzaId
   , Status(..)
   , STBuilder
@@ -229,15 +231,30 @@ send' conn stanza = do
   send conn stanza'
   pure stanza'
 
+foreign import data StanzaHandlerRef ∷ Type
+
 foreign import addHandlerImpl ∷
   ∀ eff.
     EffFn2 (http ∷ HTTP, connection :: CONNECTION | eff)
       Connection
       (EffFn1 (http ∷ HTTP, connection :: CONNECTION | eff) StanzaDocument Boolean)
-      Unit
+      StanzaHandlerRef
 addHandler ∷
   ∀ eff.
     Connection →
     (StanzaDocument → Eff (http ∷ HTTP, connection :: CONNECTION | eff) Boolean) →
-    Eff (http ∷ HTTP, connection :: CONNECTION | eff) Unit
+    Eff (http ∷ HTTP, connection :: CONNECTION | eff) StanzaHandlerRef
 addHandler conn handler = runEffFn2 addHandlerImpl conn (mkEffFn1 handler)
+
+foreign import deleteHandlerImpl ∷
+  ∀ eff.
+    EffFn2 (connection :: CONNECTION | eff)
+      Connection
+      StanzaHandlerRef
+      Unit
+deleteHandler ∷
+  ∀ eff.
+    Connection →
+    StanzaHandlerRef →
+    Eff (connection :: CONNECTION | eff) Unit
+deleteHandler = runEffFn2 deleteHandlerImpl
