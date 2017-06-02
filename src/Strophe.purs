@@ -107,8 +107,13 @@ _toStatus :: Partial ⇒ Int → Status
 _toStatus i = fromJust $ _statusCache !! i >>= id
 
 newtype ServerUrl = ServerUrl String
+derive instance newtypeServerUrl ∷ Newtype ServerUrl _
+
 newtype Jid = Jid String
+derive instance newtypeJid ∷ Newtype Jid _
+
 newtype Password = Password String
+derive instance newtypePassword ∷ Newtype Password _
 
 foreign import connectionImpl ∷
   ∀ eff. ServerUrl → (Eff (http ∷ HTTP, connection :: CONNECTION | eff) Connection)
