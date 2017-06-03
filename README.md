@@ -4,9 +4,7 @@
 
 Some low level bindings are already implemented and tested - check `Strophe.purs` for details.
 
-Higher level `API` is still in pre alpha state, so don't rely on anything under `Strophe/Xmpp` for now.
-
-I'm going to push this lib to pursuit and bower registry when these issues are resolved.
+Higher level `API` is still in pre alpha state (on branch). I'm going to push this lib to pursuit and bower registry when I add enoght sugar to it.
 
 
 ## Testing
