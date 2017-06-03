@@ -55,7 +55,6 @@ type IqRequestBase id =
     | id
     )
 
-type AnonymousIqRequest = IqRequestBase ()
 type IqRequest = IqRequestBase (id ∷ String)
 
 -- type IqRequest =
